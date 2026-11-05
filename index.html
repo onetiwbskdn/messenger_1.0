@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Nexus Messenger Ultimate</title>
+<style>
+:root {
+  --bg: #0b1118; --panel: #151f2b; --line: #243447; --text: #ffffff; --muted: #8b9eb0;
+  --accent: #2d7aff; --danger: #ff4757; --success: #2ed573; --gold: #ffa502;
+  --own: #2d7aff; --other: #1e2c3a;
+  --grad-blue: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  --grad-premium: linear-gradient(135deg, #FFD700, #FFA500, #FF8C00);
+}
+:root[data-theme=light] {
+  --bg: #f0f2f5; --panel: #ffffff; --line: #e4e6eb; --text: #050505; --muted: #65676b;
+  --accent: #1877f2; --own: #1877f2; --other: #e4e6eb;
+}
+* { box-sizing: border-box; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: #000; height: 100vh; display: flex; justify-content: center; overflow: hidden; }
+
+/* АДАПТИВНОСТЬ */
+@media (min-width: 768px) {
+    #app { max-width: 100%; width: 100%; max-height: 100vh; border-radius: 0; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; }
+    .chat-list { max-width: 800px; margin: 0 auto; width: 100%; }
+    main { padding: 20px 40px; }
+    .composer { max-width: 800px; margin: 0 auto; width: 100%; border-radius: 20px 20px 0 0; }
+    .modal-content { max-width: 500px !important; }
+}
+@media (max-width: 767px) {
+    #app { width: 100%; max-width: 450px; height: 100vh; max-height: 900px; }
+}
+
+#app { background: var(--bg); color: var(--text); position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+.view { display: none; flex: 1; flex-direction: column; min-height: 0; animation: fadeIn 0.2s ease; }
+.view.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+header { display: flex; align-items: center; gap: 10px; padding: 15px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 10; }
+header h2 { font-size: 18px; flex: 1; font-weight: 700; }
+.ghost { background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer; padding: 5px; transition: 0.2s; }
+.ghost:active { transform: scale(0.9); }
+main { flex: 1; overflow-y: auto; padding: 15px; min-height: 0; }
+
+input, textarea, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; transition: 0.2s; }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45, 122, 255, 0.2); }
+.btn { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; margin-bottom: 10px; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.btn:active { transform: scale(0.97); opacity: 0.9; }
+.btn.alt { background: var(--line); color: var(--text); }
+.btn.danger { background: var(--danger); }
+.btn.premium { background: var(--grad-premium); color: #000; font-weight: 800; box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4); }
+
+.row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: var(--panel); margin-bottom: 10px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+.row:active { background: var(--line); transform: scale(0.98); }
+.av { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 20px; position: relative; overflow: hidden; }
+.av img { width: 100%; height: 100%; object-fit: cover; }
+.av.premium { border: 3px solid #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+.av.premium::after { content: '👑'; position: absolute; top: -5px; font-size: 16px; right: -2px; transform: rotate(15deg); text-shadow: 0 0 5px #000;}
+.grow { flex: 1; min-width: 0; }
+.sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ЧАТ */
+.msgs { display: flex; flex-direction: column; gap: 8px; padding: 15px; min-height: 100%; max-width: 800px; margin: 0 auto; width: 100%; }
+.msg { max-width: 80%; background: var(--other); padding: 10px 14px; border-radius: 16px 16px 16px 4px; align-self: flex-start; word-break: break-word; font-size: 15px; line-height: 1.4; box-shadow: 0 2px 5px rgba(0,0,0,0.1); animation: popIn 0.2s ease; position: relative; cursor: pointer; }
+.msg.out { background: var(--own); align-self: flex-end; border-radius: 16px 16px 4px 16px; color: #fff; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.msg .meta { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; text-align: right; }
+.msg .stick { font-size: 50px; line-height: 1; }
+
+/* PREMIUM ПУЗЫРИ */
+.bub-default { border-radius: 16px 16px 16px 4px; }
+.bub-round { border-radius: 30px; }
+.bub-square { border-radius: 4px; }
+.bub-glass { background: rgba(255,255,255,0.1) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+.bub-neon { box-shadow: 0 0 15px var(--accent), inset 0 0 10px rgba(255,255,255,0.5); border: 1px solid var(--accent); }
+.bub-gradient { background: linear-gradient(45deg, #ff6b6b, #feca57) !important; color: #000 !important; font-weight: bold; }
+
+.composer { display: flex; gap: 8px; padding: 10px 15px; background: var(--panel); border-top: 1px solid var(--line); align-items: center; z-index: 10;}
+.composer input { margin: 0; border-radius: 24px; background: var(--bg); }
+.composer button { border: none; border-radius: 50%; background: var(--accent); color: #fff; width: 44px; height: 44px; cursor: pointer; font-size: 18px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; transition: 0.2s; }
+.composer button:active { transform: scale(0.9); }
+.composer .icon-btn { background: none; color: var(--muted); font-size: 26px; width: 36px; }
+
+nav { display: flex; background: var(--panel); border-top: 1px solid var(--line); padding: 5px 0; justify-content: center; z-index: 10;}
+nav button { flex: 1; max-width: 150px; padding: 10px 0; background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; }
+nav button .ic { font-size: 22px; }
+nav button.on { color: var(--accent); font-weight: bold; }
+
+.card { background: var(--panel); border-radius: 16px; padding: 16px; margin-bottom: 15px; border: 1px solid var(--line); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.item { background: var(--panel); border-radius: 16px; padding: 15px 5px; text-align: center; border: 1px solid var(--line); font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;}
+.item:active { transform: scale(0.95); background: var(--line); }
+.item .ic { font-size: 36px; margin-bottom: 5px; }
+.price { color: var(--gold); font-weight: bold; margin-top: 5px; font-size: 12px; background: rgba(255, 165, 2, 0.1); display: inline-block; padding: 2px 8px; border-radius: 10px; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 15px; background: var(--panel); padding: 5px; border-radius: 12px; overflow-x: auto;}
+.tabs button { flex: 1; padding: 10px; border-radius: 8px; border: none; background: none; color: var(--muted); cursor: pointer; font-weight: bold; transition: 0.2s; white-space: nowrap;}
+.tabs button.on { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(45,122,255,0.3); }
+
+/* ПРОФИЛЬ */
+.profBg { height: 160px; border-radius: 20px 20px 0 0; margin-bottom: -45px; transition: 0.3s; position: relative; background-size: cover; background-position: center; overflow: hidden;}
+.profAv { width: 90px; height: 90px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 36px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 5px solid var(--bg); position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2; overflow: hidden; }
+.profAv img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.profAv.premium { border-color: #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.4); }
+.profAv.premium::after { content: '👑'; position: absolute; top: 0px; font-size: 24px; transform: rotate(15deg); text-shadow: 0 0 5px #000; z-index: 3;}
+
+.center { text-align: center; }
+.stats { display: flex; gap: 10px; justify-content: center; margin: 15px 0; }
+.stat { background: var(--panel); border-radius: 12px; padding: 10px 15px; font-size: 12px; color: var(--muted); border: 1px solid var(--line); flex: 1; text-align: center; }
+.stat b { display: block; color: var(--accent); font-size: 20px; margin-top: 5px; }
+
+/* МОДАЛКИ */
+.modal { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
+.modal.active { display: flex; }
+.modal-content { background: var(--panel); border-radius: 20px; padding: 20px; width: 100%; max-width: 350px; position: relative; text-align: center; border: 1px solid var(--line); max-height: 80vh; overflow-y: auto;}
+.modal-close-btn { position: absolute; top: 15px; right: 15px; background: var(--line); border: none; color: var(--text); width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; z-index: 10; }
+
+/* NFT ВИД */
+.nft-view-box { width: 140px; height: 140px; margin: 0 auto 15px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 70px; transition: 0.3s; border: 2px solid var(--line); }
+.nft-bg-gray { background: #333; }
+.nft-bg-black { background: #000; }
+.nft-bg-pink { background: #ff69b4; }
+.nft-bg-rainbow { background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet); }
+.nft-bg-transparent { background: transparent; }
+
+.nft-style-simple { filter: none; }
+.nft-style-gold { filter: drop-shadow(0 0 15px gold) sepia(1) saturate(5) hue-rotate(5deg); }
+.nft-style-white { filter: grayscale(1) brightness(3); }
+.nft-style-rainbow { filter: drop-shadow(2px 2px 0 red) drop-shadow(-2px -2px 0 cyan); }
+
+/* АНИМАЦИЯ НАКОВАЛЬНИ */
+@keyframes hammerStrike {
+  0% { transform: rotate(-45deg) translateY(-20px); }
+  20% { transform: rotate(20deg) translateY(10px); }
+  40% { transform: rotate(-45deg) translateY(-20px); }
+  60% { transform: rotate(20deg) translateY(10px); }
+  80% { transform: rotate(-45deg) translateY(-20px); }
+  100% { transform: rotate(20deg) translateY(10px); }
+}
+.anvil-box { font-size: 80px; position: relative; margin: 20px 0; height: 100px; display: flex; justify-content: center; align-items: flex-end; }
+.hammer { position: absolute; font-size: 60px; top: 0; left: 20%; animation: hammerStrike 0.5s 3; transform-origin: bottom right; }
+.anvil { font-size: 80px; z-index: 2; }
+
+.toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: bold; opacity: 0; transition: .3s; pointer-events: none; z-index: 9999; max-width: 90%; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.toast.show { opacity: 1; top: 30px; }
+.toast.ok { background: var(--success); }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+<div class="toast" id="toast"></div>
+
+<!-- ЭКРАН ОНБОРДИНГА -->
+<div class="view active" id="vOnboarding" style="background:#000;color:#fff;justify-content:center;align-items:center;text-align:center;padding:30px;">
+  <div id="onboardContent" style="max-width:400px;transition:0.3s;">
+    <div style="font-size:80px;margin-bottom:20px;">🔐</div>
+    <h2 style="font-size:24px;margin-bottom:15px;font-weight:bold;">Полное шифрование</h2>
+    <p style="color:#888;font-size:15px;line-height:1.4;">Сквозное шифрование для всех сообщений и звонков. Никто не может прочитать ваши разговоры — даже мы.</p>
+  </div>
+  <button class="btn" style="margin-top:40px;width:100%;max-width:300px;" onclick="nextOnboard()">Далее</button>
+  <button class="btn alt" style="background:none;border:none;color:#888;margin-top:10px;" onclick="skipOnboard()">Пропустить</button>
+</div>
+
+<!-- АВТОРИЗАЦИЯ -->
+<div class="view" id="vAuth">
+  <main style="display:flex;flex-direction:column;justify-content:center;padding:30px">
+    <div class="center" style="font-size:70px;margin-bottom:10px">🛡️</div>
+    <h1 class="center" style="font-size:28px;margin-bottom:30px;font-weight:800;background:var(--grad-blue);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Nexus</h1>
+    
+    <input id="authNick" placeholder="Ваш ник (3-20 символов)" autocomplete="username">
+    <input id="authPass" type="password" placeholder="Пароль (минимум 6)" autocomplete="current-password">
+
+    <div id="adminSecretBox" class="hidden" style="background:var(--danger);padding:15px;border-radius:12px;margin-bottom:15px">
+      <div style="font-size:13px;color:#fff;margin-bottom:8px;font-weight:bold">🔐 Секретная фраза Админа</div>
+      <input id="secretPhrase" placeholder="10 слов..." style="margin:0;background:rgba(0,0,0,0.3);border:none;color:#fff">
+    </div>
+    
+    <div id="authError" style="color:var(--danger);font-size:14px;text-align:center;margin-bottom:15px;font-weight:bold;display:none"></div>
+    
+    <button class="btn" id="btnLogin">Войти в аккаунт</button>
+    <button class="btn alt" id="btnRegister">Создать аккаунт</button>
+  </main>
+</div>
+
+<!-- СПИСОК ЧАТОВ -->
+<div class="view" id="vChats">
+  <header><h2>Чаты</h2><button class="ghost" id="btnNewGroup">➕</button></header>
+  <main>
+    <div style="max-width:800px;margin:0 auto;width:100%">
+        <input id="searchInput" placeholder="Поиск по нику... 🔍">
+        <div id="chatList"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ЧАТ -->
+<div class="view" id="vChat">
+  <header>
+    <button class="ghost" id="chatBack">←</button>
+    <div class="av" id="chatAvatar" style="width:40px;height:40px;font-size:16px"></div>
+    <h2 id="chatTitle" style="cursor:pointer"></h2>
+  </header>
+  <main id="msgsWrap" style="padding:0; position:relative;">
+    <div id="chatWallpaper" style="position:absolute;top:0;left:0;right:0;bottom:0;background-size:cover;background-position:center;opacity:0.3;z-index:0;pointer-events:none;"></div>
+    <div class="msgs" id="msgs" style="position:relative;z-index:1;"></div>
+  </main>
+  <div class="composer">
+    <button class="icon-btn" id="btnSticker">😀</button>
+    <input id="msgInput" placeholder="Сообщение...">
+    <button id="sendBtn">➤</button>
+  </div>
+</div>
+
+<!-- МАГАЗИН -->
+<div class="view" id="vShop">
+  <header><h2>Магазин</h2></header>
+  <main>
+    <div style="max-width:800px;margin:0 auto;width:100%">
+        <div class="card center" style="background:var(--grad-blue);color:#fff;border:none">
+          <div style="font-size:14px;opacity:0.9">NEXUS Crypto Wallet</div>
+          <div class="nexTxt" style="font-size:36px;font-weight:900;margin:10px 0">0 NEX</div>
+          <div style="font-size:14px;opacity:0.9;margin-top:10px">Баланс Coin</div>
+          <div class="balanceTxt" style="font-size:24px;font-weight:bold;color:#FFD700">0 🪙</div>
+        </div>
+        <div class="tabs">
+          <button id="catGift" class="on">🎁 Подарки</button>
+          <button id="catNft">🖼️ NFT</button>
+          <button id="catServ">💎 Услуги</button>
+        </div>
+        <div class="grid" id="shopGrid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ПРОФИЛЬ -->
+<div class="view" id="vProfile">
+  <header>
+    <button class="ghost" id="profBack">←</button>
+    <h2 id="profHeader">Мой профиль</h2>
+  </header>
+  <main style="padding-top:0">
+    <div style="max-width:800px;margin:0 auto;width:100%">
+        <div class="profBg bg-blue" id="profBg"></div>
+        <div class="profAv" id="profAv"></div>
+        <div class="center" style="margin-top:10px">
+          <div style="font-size:22px;font-weight:800;display:flex;justify-content:center;align-items:center;gap:5px" id="profNick"></div>
+          <div class="sub" id="profClan" style="color:var(--gold);font-weight:bold;margin-bottom:5px"></div>
+          <div class="sub" id="profBio"></div>
+        </div>
+        
+        <div class="stats">
+          <div class="stat">Coin<b id="profBalance">0</b></div>
+          <div class="stat">NEX<b id="profNex">0</b></div>
+        </div>
+
+        <div id="profOwn">
+          <div class="card" style="border-color:var(--gold)" id="premCard">
+            <div style="font-weight:bold;margin-bottom:10px;color:var(--gold)">👑 Premium Подписка</div>
+            <button class="btn premium" id="buyPremiumBtn" onclick="buyPremium()">Купить Premium (5000 NEX)</button>
+            <button class="btn alt" onclick="openSettings()">⚙️ Настройки профиля</button>
+          </div>
+
+          <div class="card">
+            <button class="btn alt" id="themeBtn">🌓 Сменить тему</button>
+            <button class="btn danger" id="logoutBtn">Выйти из аккаунта</button>
+          </div>
+        </div>
+
+        <div class="tabs" id="profTabs">
+          <button id="tabGifts" class="on">🎁 Подарки</button>
+          <button id="tabNft">🖼️ NFT Коллекция</button>
+        </div>
+        <div class="grid" id="invGrid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- НАСТРОЙКИ ПРОФИЛЯ (Обновленные) -->
+<div class="view" id="vSettings">
+  <header><button class="ghost" onclick="show('vProfile')">←</button><h2>Настройки</h2></header>
+  <main>
+    <div style="max-width:800px;margin:0 auto;width:100%">
+        <div class="card">
+          <h3 style="margin-bottom:10px">Профиль</h3>
+          <textarea id="setBio" placeholder="О себе..." rows="2"></textarea>
+          <div style="display:flex; gap:10px;">
+             <button class="btn alt" onclick="uploadPhoto('avatar')">📸 Аватарка (Файл)</button>
+             <button class="btn alt" onclick="uploadPhoto('banner')">🖼️ Баннер (Файл)</button>
+          </div>
+          <p class="sub" style="font-size:11px; margin-bottom:10px;">Баннер теперь доступен всем!</p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px">🎨 Фон профиля</h3>
+          <select id="setBg">
+            <option value="bg-blue">Синий</option><option value="bg-red">Красный</option>
+            <option value="bg-green">Зелёный</option><option value="bg-purple">Фиолетовый</option>
+            <option value="bg-orange">Оранжевый</option><option value="bg-neon">Неон</option>
+            <option value="bg-cyberpunk">Киберпанк</option><option value="bg-sunset">Закат</option>
+            <option value="bg-ocean">Океан</option><option value="bg-fire">Огонь</option>
+            <option value="bg-forest">Лес</option><option value="bg-lava">Лава</option>
+            <option value="bg-ice">Лед</option><option value="bg-royal">Королевский</option>
+            <option value="bg-candy">Конфета</option><option value="bg-matrix">Матрица</option>
+            <option value="bg-gold">Золото</option><option value="bg-dark">Темный</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px">🛡️ Клан (500 NEX)</h3>
+          <div id="clanStatus" style="margin-bottom:10px;font-weight:bold"></div>
+          <input id="setClan" placeholder="Название клана">
+          <button class="btn" onclick="createClan()">Создать клан</button>
+        </div>
+
+        <div class="card" id="premSettings" style="border-color:var(--gold)">
+          <h3 style="margin-bottom:10px;color:var(--gold)">👑 Premium Настройки</h3>
+          
+          <label class="sub" style="display:block;margin-bottom:5px">Стиль пузырей:</label>
+          <select id="setBubbleStyle">
+            <option value="bub-default">Классический</option>
+            <option value="bub-round">Круглый</option>
+            <option value="bub-square">Квадратный</option>
+            <option value="bub-glass">Стекло</option>
+            <option value="bub-neon">Неон</option>
+            <option value="bub-gradient">Градиент</option>
+          </select>
+
+          <label class="sub" style="display:block;margin-bottom:5px">Обои для чата (Файл):</label>
+          <button class="btn alt" onclick="uploadPhoto('wallpaper')" style="margin-bottom:10px;">🖼️ Загрузить обои</button>
+          
+          <label class="sub" style="display:block;margin-bottom:5px">Цвет своих сообщений:</label>
+          <input type="color" id="setMsgColor" value="#2d7aff" style="padding:0;height:40px;">
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px">📱 Мои устройства</h3>
+          <div id="deviceList" class="sub" style="margin-bottom:10px;">Загрузка...</div>
+          <button class="btn danger" onclick="logoutAllDevices()">Выйти на всех устройствах</button>
+        </div>
+        
+        <button class="btn" onclick="saveSettings()" style="margin-top:20px;padding:20px">СОХРАНИТЬ ВСЁ</button>
+    </div>
+  </main>
+</div>
+
+<!-- АДМИНКА -->
+<div class="view" id="vAdmin">
+  <header><h2>Админ-панель</h2></header>
+  <main>
+    <div style="max-width:800px;margin:0 auto;width:100%">
+        <div class="card">
+          <h3 style="margin-bottom:10px">💰 Валюты</h3>
+          <input id="adminUser1" placeholder="Ник">
+          <input id="adminAmount1" type="number" placeholder="Сумма">
+          <div style="display:flex;gap:8px;">
+            <button class="btn" style="background:var(--success);margin:0" onclick="adminAction('balance')">Coin</button>
+            <button class="btn" style="background:var(--accent);margin:0" onclick="adminAction('nex')">NEX</button>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3 style="margin-bottom:10px">🎖️ Статусы & Права</h3>
+          <input id="adminUser2" placeholder="Ник">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="btn" style="background:var(--accent);margin:0" onclick="adminAction('verify')">Дать ✔</button>
+            <button class="btn" style="background:#555;margin:0" onclick="adminAction('unverify')">Снять ✔</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="btn" style="background:var(--gold);margin:0" onclick="adminAction('premium')">Дать 👑</button>
+            <button class="btn" style="background:#555;margin:0" onclick="adminAction('unpremium')">Снять 👑</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" style="background:#8e44ad;margin:0" onclick="adminAction('makeadmin')">Выдать Админку</button>
+            <button class="btn" style="background:#555;margin:0" onclick="adminAction('removeadmin')">Снять Админку</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px">🚫 Модерация & Сброс</h3>
+          <input id="adminUser3" placeholder="Ник">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="btn danger" style="margin:0" onclick="adminAction('ban')">Бан</button>
+            <button class="btn" style="background:var(--success);margin:0" onclick="adminAction('unban')">Разбан</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="btn" style="background:#e67e22;margin:0" onclick="adminAction('freeze')">Заморозить</button>
+            <button class="btn" style="background:var(--success);margin:0" onclick="adminAction('unfreeze')">Разморозить</button>
+          </div>
+          <button class="btn alt" onclick="adminAction('clearClan')">Удалить клан у юзера</button>
+          <button class="btn alt" style="color:var(--danger)" onclick="adminAction('clearNft')">Удалить все NFT у юзера</button>
+        </div>
+    </div>
+  </main>
+</div>
+
+<!-- МОДАЛКА: СТИКЕРЫ -->
+<div class="modal" id="mStickers">
+  <div class="modal-content">
+    <button class="modal-close-btn" onclick="closeModal('mStickers')">✖</button>
+    <h3 style="margin-bottom:15px">Стикеры (Premium)</h3>
+    <div class="grid" style="font-size:40px;cursor:pointer">
+      <div onclick="sendSticker('🐶')">🐶</div><div onclick="sendSticker('🐱')">🐱</div><div onclick="sendSticker('🦊')">🦊</div>
+      <div onclick="sendSticker('😻')">😻</div><div onclick="sendSticker('🔥')">🔥</div><div onclick="sendSticker('💩')">💩</div>
+      <div onclick="sendSticker('🎉')">🎉</div><div onclick="sendSticker('👻')">👻</div><div onclick="sendSticker('🤖')">🤖</div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: NFT ПРОСМОТР -->
+<div class="modal" id="mNftView">
+  <div class="modal-content">
+    <button class="modal-close-btn" onclick="closeModal('mNftView')">✖</button>
+    <div class="nft-view-box nft-bg-gray" id="nftViewBox">🐱</div>
+    <h3 id="nftViewName" style="margin-bottom:10px">NFT</h3>
+    <div class="sub" style="margin-bottom:15px">Стиль и фон выдаются случайно при улучшении.</div>
+    <button class="btn" style="background:var(--gold);color:#000;" onclick="sellNft()">💰 Продать за 50% цены</button>
+    <button class="btn alt" onclick="giftNft()">🎁 Подарить другу (250 Coin)</button>
+  </div>
+</div>
+
+<!-- МОДАЛКА: АНИМАЦИЯ НАКОВАЛЬНИ -->
+<div class="modal" id="mAnvil">
+  <div class="modal-content">
+    <h3 style="margin-bottom:10px">Крафт NFT (Нужно 4 шт.)</h3>
+    <div class="anvil-box"><div class="anvil">🪨</div><div class="hammer">🔨</div></div>
+    <div id="anvilResult" style="font-size:20px;font-weight:bold;color:var(--gold);opacity:0;transition:1s">✨ УЛУЧШЕНО! ✨</div>
+  </div>
+</div>
+
+<!-- НИЖНЯЯ НАВИГАЦИЯ -->
+<nav id="bottomNav" class="hidden">
+  <button data-go="vChats" class="on"><span class="ic">💬</span>Чаты</button>
+  <button data-go="vShop"><span class="ic">🛍️</span>Магазин</button>
+  <button data-go="vProfile"><span class="ic">👤</span>Профиль</button>
+  <button data-go="vAdmin" id="navAdmin" class="hidden"><span class="ic">🛠️</span>Админ</button>
+</nav>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, set, get, update, onValue, onChildAdded, runTransaction, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = { apiKey: "AIzaSyBkNR9ZrRFwB39CYlhk2CNz4jWD-WGWuD8", authDomain: "chat-d7385.firebaseapp.com", databaseURL: "https://chat-d7385-default-rtdb.europe-west1.firebasedatabase.app", projectId: "chat-d7385", storageBucket: "chat-d7385.firebasestorage.app", messagingSenderId: "421202112650", appId: "1:421202112650:web:7b53494f3d32fd02a87d73" };
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+signInAnonymously(auth).catch(console.error);
+
+const ADMIN_NICK = "evdo";
+const ADMIN_SECRET = "evdo evdo EVDONKO Misha hi fish popa pops vino Moldova";
+
+const GIFTS = [{ id: "g1", name: "Сердце", emoji: "❤️", price: 15 },{ id: "g2", name: "Мишка", emoji: "🧸", price: 25 },{ id: "g3", name: "Роза", emoji: "🌹", price: 50 },{ id: "g4", name: "Алмаз", emoji: "💎", price: 100 }];
+const NFTS = [{ id: "n1", name: "Кот", emoji: "🐱", price: 100 },{ id: "n2", name: "Череп", emoji: "💀", price: 200 },{ id: "n3", name: "Пришелец", emoji: "👽", price: 300 },{ id: "n4", name: "Робот", emoji: "🤖", price: 500 },{ id: "n5", name: "Ракета", emoji: "🚀", price: 1000 }];
+const SERVICES = [{ id: "s1", name: "Анонимный номер", emoji: "📱", price: 500, currency: "nex" }];
+
+const $ = id => document.getElementById(id);
+const normName = s => String(s || "").trim().toLowerCase();
+const chatKey = (a, b) => [a, b].sort().join("_"); 
+const userRef = name => ref(db, "users/" + name);
+const toArr = v => Array.isArray(v) ? v.filter(x => x != null) : Object.values(v || {});
+
+let me = null, profile = null, unsubChat = null, activeChat = null, viewingProfile = null, activeProfileTab = 'gifts', shopCat = 'gift', currentNftId = null;
+
+// ЛОГИКА ОНБОРДИНГА
+const onboardSlides = [
+  { icon: "🔐", title: "Полное шифрование", desc: "Сквозное шифрование для всех сообщений и звонков." },
+  { icon: "🕵️", title: "Анонимная личность", desc: "Не требуется номер телефона. Ваша личность приватна." },
+  { icon: "🗑️", title: "Исчезающие сообщения", desc: "Таймер автоудаления. Сообщения исчезают после прочтения." },
+  { icon: "🛡️", title: "Нулевой сбор данных", desc: "Мы не собираем ваши данные." }
+];
+let currentSlide = 0;
+
+window.nextOnboard = () => {
+  currentSlide++;
+  if (currentSlide >= onboardSlides.length) return skipOnboard();
+  const s = onboardSlides[currentSlide];
+  $("onboardContent").innerHTML = `
+    <div style="font-size:80px;margin-bottom:20px;">${s.icon}</div>
+    <h2 style="font-size:24px;margin-bottom:15px;font-weight:bold;">${s.title}</h2>
+    <p style="color:#888;font-size:15px;line-height:1.4;">${s.desc}</p>
+  `;
+};
+window.skipOnboard = () => {
+  $("vOnboarding").classList.remove("active");
+  $("vAuth").classList.add("active");
+  localStorage.setItem("onboarded", "true");
+};
+if (localStorage.getItem("onboarded")) {
+  window.addEventListener('load', () => {
+    $("vOnboarding").classList.remove("active");
+    $("vAuth").classList.add("active");
+  });
+}
+
+function toast(msg, ok = false) { 
+    const t = $("toast"); t.textContent = msg; 
+    t.className = "toast show" + (ok ? " ok" : ""); 
+    clearTimeout(t._t); 
+    t._t = setTimeout(() => t.classList.remove("show"), 2500); 
+}
+function show(id) { 
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active")); 
+    $(id).classList.add("active"); 
+    $("bottomNav").classList.toggle("hidden", id === "vAuth" || id === "vOnboarding" || !me);
+    if (id === "vChats") renderChats(); 
+    if (id === "vShop") renderShop(); 
+}
+const openModal = id => $(id).classList.add("active");
+const closeModal = id => $(id).classList.remove("active");
+
+// ФОТО ЗАГРУЗКА
+window.uploadPhoto = function(type) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const base64 = event.target.result;
+            if(type === 'avatar') {
+                await update(userRef(me.name), { avatar: base64 });
+                toast("Аватарка обновлена!", true);
+                renderProfile(me.name);
+            } else if (type === 'banner') {
+                await update(userRef(me.name), { banner: base64 });
+                toast("Баннер обновлен!", true);
+            } else if (type === 'wallpaper') {
+                await update(userRef(me.name), { wallpaper: base64 });
+                toast("Обои чата обновлены!", true);
+                if(activeChat) openChat(activeChat); // перезагружаем чат
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+};
+
+// ВХОД
+$("authNick").addEventListener("input", () => { $("adminSecretBox").classList.toggle("hidden", normName($("authNick").value) !== ADMIN_NICK); });
+$("btnLogin").addEventListener("click", () => login(false));
+$("btnRegister").addEventListener("click", () => register());
+
+window.addEventListener('load', () => {
+    const savedUser = localStorage.getItem('savedUser');
+    if (savedUser) {
+        try { const u = JSON.parse(savedUser); $("authNick").value = u.name; login(true); } 
+        catch(e) { localStorage.removeItem('savedUser'); }
+    }
+});
+
+async function login(isAuto = false) {
+    $("authError").style.display = "none";
+    const name = normName($("authNick").value);
+    const pass = $("authPass").value.trim();
+    if (!name) return $("authError").textContent = "Введите ник!";
+
+    if (name === ADMIN_NICK && !isAuto) {
+        if ($("secretPhrase").value.trim() !== ADMIN_SECRET) return $("authError").textContent = "Неверная фраза!";
+    }
+
+    try {
+        const snap = await get(userRef(name));
+        if (!snap.exists()) {
+            if (name === ADMIN_NICK) {
+                await set(userRef(name), { balance: 9999999, nex: 9999999, usdt: 9999, gifts: [], nfts: [], chats: [], password: pass, profileBg: 'bg-blue', bio: "Главный админ", verified: true, premium: true, role: "ADMIN", phone: "+375000000000", avatar: "", clan: "ADMIN", banner: "", msgColor: "#2d7aff", nftStyles: {}, devices: {} });
+            } else {
+                return $("authError").textContent = "Аккаунт не найден.";
+            }
+        } else {
+            const data = snap.val();
+            if (!isAuto && data.password && data.password !== pass) return $("authError").textContent = "Неверный пароль!";
+            if (data.banned) return $("authError").textContent = "Вы забанены!";
+            if (data.frozen) return $("authError").textContent = "Аккаунт заморожен!";
+        }
+
+        const currentData = (await get(userRef(name))).val();
+        me = { name, role: currentData.role === "ADMIN" || name === ADMIN_NICK ? "ADMIN" : "USER" };
+        
+        if (!isAuto) {
+            const deviceInfo = navigator.userAgent.includes("Mobi") ? "📱 Телефон" : "💻 Компьютер";
+            const loginTime = Date.now();
+            const sessionId = "dev_" + loginTime;
+            const devices = currentData.devices || {};
+            devices[sessionId] = { device: deviceInfo, ip: "Скрыт", time: loginTime };
+            await update(userRef(name), { devices: devices });
+        }
+
+        const updateProfileUI = (snapshot) => {
+            profile = snapshot.val();
+            if (!profile) return;
+            if (!profile.gifts) profile.gifts = [];
+            if (!profile.nfts) profile.nfts = [];
+            if (!profile.nftStyles) profile.nftStyles = {};
+
+            document.querySelectorAll(".balanceTxt").forEach(e => e.textContent = (profile.balance || 0) + " 🪙");
+            document.querySelectorAll(".nexTxt").forEach(e => e.textContent = (profile.nex || 0) + " NEX");
+            
+            $("navAdmin").classList.toggle("hidden", me.role !== "ADMIN");
+            $("buyPremiumBtn").style.display = profile.premium ? "none" : "flex";
+            $("premSettings").style.display = profile.premium ? "block" : "none";
+            $("btnSticker").style.display = profile.premium ? "block" : "none";
+            $("clanStatus").textContent = profile.clan ? `Ваш клан: ${profile.clan}` : "У вас нет клана";
+
+            renderDevices(profile.devices || {});
+
+            if($("vProfile").classList.contains('active') && !viewingProfile) renderProfile(me.name);
+            if(activeChat) applyWallpaper();
+        };
+
+        onValue(userRef(me.name), updateProfileUI);
+        show("vChats");
+        toast("Успешный вход!", true);
+        localStorage.setItem('savedUser', JSON.stringify({ name: me.name }));
+    } catch (e) { $("authError").textContent = "Ошибка: " + e.message; }
+}
+
+async function register() {
+    const name = normName($("authNick").value), pass = $("authPass").value.trim();
+    if (name.length < 3) return toast("Ник слишком короткий");
+    if (pass.length < 5) return toast("Пароль минимум 5 символов");
+
+    try {
+        const res = await runTransaction(userRef(name), cur => {
+            if (cur === null) {
+                return { balance: 100, nex: 100, usdt: 0, gifts: [], nfts: [], chats: [], password: pass, profileBg: 'bg-blue', bio: "Пользователь Nexus", verified: false, premium: false, role: "USER", phone: "+0000000000", avatar: "", clan: "", banner: "", msgColor: "#2d7aff", nftStyles: {}, devices: {} };
+            }
+            return undefined;
+        });
+        if (!res.committed) return toast("Этот ник уже занят!");
+        
+        $("authPass").value = pass; 
+        toast("Аккаунт создан!", true);
+        login(true);
+    } catch (e) { toast("Ошибка: " + e.message); }
+}
+
+function renderDevices(devices) {
+    const list = $("deviceList");
+    if (!list) return;
+    if (Object.keys(devices).length === 0) { list.innerHTML = "Нет данных"; return; }
+    list.innerHTML = "";
+    Object.entries(devices).sort((a,b) => b[1].time - a[1].time).forEach(([id, d]) => {
+        const date = new Date(d.time).toLocaleString("ru-RU", {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+        list.innerHTML += `<div style="padding:8px;border-bottom:1px solid var(--line);">
+            <b>${d.device}</b><br><span style="font-size:11px;color:var(--muted)">${d.ip} | ${date}</span>
+        </div>`;
+    });
+}
+window.logoutAllDevices = async () => { await update(userRef(me.name), { devices: {} }); toast("Сброшено!", true); renderDevices({}); };
+
+// ЧАТЫ
+async function renderChats(filter = "") {
+    const list = $("chatList"); list.innerHTML = "";
+    if(!profile || !profile.chats) return;
+    const chats = toArr(profile.chats).sort((a, b) => (b.time || 0) - (a.time || 0));
+    if(chats.length === 0) return list.innerHTML = '<div class="sub center">Нет чатов</div>';
+    
+    for (const c of chats) {
+        if(!c.name || (filter && !c.name.includes(filter))) continue;
+        let uData = c.name.startsWith("GROUP_") ? { avatar: "", premium: false, verified: true } : ((await get(userRef(c.name))).val() || {});
+        const el = document.createElement("div"); el.className = "row";
+        el.innerHTML = `
+        <div class="av ${uData.premium ? 'premium' : ''}">${uData.avatar ? `<img src="${uData.avatar}">` : (c.name.startsWith("GROUP_") ? '👥' : c.name[0].toUpperCase())}</div>
+        <div class="grow">
+            <div style="font-weight:bold;display:flex;align-items:center;gap:5px">${c.name.replace("GROUP_", "")} ${uData.verified ? '<span style="color:#4fa8ff">✔</span>' : ''}</div>
+            <div class="sub">${c.last || 'Нажмите чтобы открыть'}</div>
+        </div>`;
+        el.onclick = () => openChat(c.name);
+        list.appendChild(el);
+    }
+}
+
+let searchTimer;
+$("searchInput").oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 250); };
+async function doSearch() {
+    const q = normName($("searchInput").value); 
+    if (!q) return renderChats();
+    const list = $("chatList"); 
+    const snap = await get(ref(db, "users"));
+    if (!snap.exists()) return;
+    const users = snap.val();
+    list.innerHTML = "";
+    Object.keys(users).filter(n => n.includes(q)).forEach(n => {
+        if(n === me.name) return;
+        const el = document.createElement("div"); el.className = "row";
+        el.innerHTML = `<div class="av">${n[0].toUpperCase()}</div><div class="grow"><div style="font-weight:bold;">${n}</div></div>`;
+        el.onclick = () => openChat(n);
+        list.appendChild(el);
+    });
+}
+
+async function applyWallpaper() {
+    if(profile.wallpaper) {
+        $("chatWallpaper").style.backgroundImage = `url(${profile.wallpaper})`;
+        $("chatWallpaper").style.opacity = "0.4";
+    } else {
+        $("chatWallpaper").style.backgroundImage = "none";
+    }
+}
+
+async function openChat(target) {
+    activeChat = target;
+    const isGroup = target.startsWith("GROUP_");
+    $("chatTitle").textContent = target.replace("GROUP_", "");
+    $("chatAvatar").textContent = isGroup ? '👥' : target[0].toUpperCase();
+    $("msgs").innerHTML = "";
+    show("vChat");
+    applyWallpaper();
+
+    if (!isGroup && target !== me.name) {
+        let chats = toArr(profile.chats);
+        if (!chats.find(c => c.name === target)) {
+            chats.push({ name: target, time: Date.now() });
+            await update(userRef(me.name), { chats });
+        }
+    }
+
+    if (unsubChat) unsubChat();
+    const path = isGroup ? ref(db, "groupMessages/" + target) : ref(db, "chats/" + chatKey(me.name, target));
+
+    unsubChat = onChildAdded(path, snap => {
+        const m = snap.val();
+        if (!m) return;
+        const div = document.createElement("div");
+        div.className = "msg " + (profile.bubbleStyle || 'bub-default') + (m.from === me.name ? " out" : "");
+        if (m.from === me.name && profile.msgColor) div.style.background = profile.msgColor;
+
+        const header = isGroup && m.from !== me.name ? `<div style="font-size:11px;font-weight:bold;color:var(--gold);margin-bottom:2px">${m.from}</div>` : "";
+        div.innerHTML = `${header}<div class="${m.isSticker ? 'stick' : ''}">${m.text}</div><div class="meta">${new Date(m.time).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"})}</div>`;
+
+        $("msgs").appendChild(div);
+        $("msgsWrap").scrollTop = $("msgsWrap").scrollHeight;
+    });
+}
+
+$("chatBack").onclick = () => { if (unsubChat) { unsubChat(); unsubChat = null; } activeChat = null; show("vChats"); };
+
+async function sendMessage(text, isSticker = false) {
+    if (!text || !activeChat) return;
+    const isGroup = activeChat.startsWith("GROUP_");
+    const msgRef = isGroup ? ref(db, "groupMessages/" + activeChat) : ref(db, "chats/" + chatKey(me.name, activeChat));
+    await push(msgRef, { from: me.name, text, isSticker, time: Date.now() });
+
+    if (!isGroup) {
+        const otherSnap = await get(userRef(activeChat));
+        if (otherSnap.exists()) {
+            const otherData = otherSnap.val();
+            const otherChats = toArr(otherData.chats);
+            if (!otherChats.find(c => c.name === me.name)) {
+                otherChats.push({ name: me.name, time: Date.now(), last: text });
+                await update(userRef(activeChat), { chats: otherChats });
+            }
+        }
+        const myChats = toArr(profile.chats).map(c => c.name === activeChat ? { ...c, last: text, time: Date.now() } : c);
+        await update(userRef(me.name), { chats: myChats });
+    }
+}
+
+$("sendBtn").onclick = () => { const input = $("msgInput"); const text = input.value.trim(); if (!text) return; input.value = ""; sendMessage(text); };
+$("msgInput").onkeydown = e => { if (e.key === "Enter") $("sendBtn").click(); };
+$("btnSticker").onclick = () => openModal("mStickers");
+window.sendSticker = async (stick) => { closeModal("mStickers"); if (!activeChat) return; sendMessage(stick, true); };
+$("btnNewGroup").onclick = async () => {
+    const name = prompt("Введите название канала/группы:"); if(!name) return;
+    await push(ref(db, "channels"), { name: name, link: "#join_"+Math.random().toString(36).substring(7), owner: me.name, admins: [me.name] });
+    let chats = toArr(profile.chats); chats.push({ name: "GROUP_" + name, time: Date.now() }); await update(userRef(me.name), { chats });
+    renderChats();
+};
+
+// ПРОФИЛЬ
+window.openProfile = async function(targetName) {
+    viewingProfile = targetName === me.name ? null : targetName;
+    $("profHeader").textContent = targetName === me.name ? "Мой профиль" : "Профиль " + targetName;
+    $("profOwn").style.display = targetName === me.name ? "block" : "none";
+    show("vProfile");
+    renderProfile(targetName);
+}
+
+async function renderProfile(targetName) {
+    const snap = await get(userRef(targetName));
+    if(!snap.exists()) return toast("Профиль не найден");
+    const data = snap.val();
+    
+    const bgEl = $("profBg");
+    if (data.banner) {
+        bgEl.style.backgroundImage = `url(${data.banner})`;
+        bgEl.className = "profBg";
+    } else {
+        bgEl.style.backgroundImage = "none";
+        bgEl.className = "profBg " + (data.profileBg || 'bg-blue');
+    }
+    
+    const av = $("profAv");
+    av.className = "profAv " + (data.premium ? 'premium' : '');
+    if(data.avatar) av.innerHTML = `<img src="${data.avatar}">`;
+    else av.textContent = targetName[0].toUpperCase();
+    
+    $("profNick").innerHTML = "@" + targetName + (data.verified ? ' <span style="color:#4fa8ff;font-size:18px">✔</span>' : '');
+    $("profClan").textContent = data.clan ? `🛡️ Клан: ${data.clan}` : "";
+    $("profBio").textContent = data.bio || "Нет описания";
+    $("profBalance").textContent = data.balance || 0;
+    $("profNex").textContent = data.nex || 0;
+    renderInventory(data);
+}
+
+$("profBack").onclick = () => show("vChats");
+$("logoutBtn").onclick = () => { localStorage.removeItem('savedUser'); location.reload(); };
+$("tabGifts").onclick = () => { activeProfileTab = 'gifts'; $("tabGifts").classList.add('on'); $("tabNft").classList.remove('on'); renderProfile(viewingProfile || me.name); };
+$("tabNft").onclick = () => { activeProfileTab = 'nft'; $("tabNft").classList.add('on'); $("tabGifts").classList.remove('on'); renderProfile(viewingProfile || me.name); };
+
+function renderInventory(data) {
+    const grid = $("invGrid"); grid.innerHTML = "";
+    if (activeProfileTab === 'gifts') {
+        const gifts = toArr(data.gifts);
+        if (gifts.length === 0) return grid.innerHTML = '<div class="sub center">Подарков нет</div>';
+        gifts.forEach((g, i) => { 
+            grid.innerHTML += `<div class="item">
+                <div class="ic">${g.emoji || '🎁'}</div><div>${g.name}</div>
+                ${!viewingProfile ? `<button class="small" style="margin-top:5px;background:var(--danger);border:none;padding:4px;border-radius:5px;color:#fff;font-size:10px;" onclick="sellGift(${i})">Продать</button>` : ''}
+            </div>`; 
+        });
+    } else {
+        const nfts = toArr(data.nfts);
+        if (nfts.length === 0) return grid.innerHTML = '<div class="sub center">Нет NFT</div>';
+        
+        nfts.forEach(nftId => {
+            const isUpg = nftId.includes('_upg');
+            const baseId = nftId.split('_')[0];
+            const base = NFTS.find(n => n.id === baseId) || NFTS[0];
+            const custom = (data.nftStyles && data.nftStyles[nftId]) ? data.nftStyles[nftId] : { style: 'nft-style-simple', bg: 'nft-bg-gray' };
+            const baseCount = nfts.filter(id => id === baseId && !id.includes('_upg')).length;
+
+            grid.innerHTML += `<div class="item" onclick="openNftView('${nftId}', '${base.emoji}', '${base.name}', ${base.price})">
+                <div class="ic ${custom.style} ${custom.bg}" style="border-radius:10px;padding:5px;width:70px;height:70px;display:flex;align-items:center;justify-content:center;">${base.emoji}</div>
+                <div style="margin-top:5px">${base.name} ${isUpg ? '👑' : ''} <span style="color:var(--muted);font-size:11px">x${baseCount}</span></div>
+                ${(!viewingProfile && !isUpg && baseCount >= 4) ? `<button class="small" style="margin-top:5px;background:#ed8936;border:none;padding:5px;border-radius:5px;color:#fff;font-size:10px;" onclick="event.stopPropagation(); startUpgrade('${baseId}')">Крафт (4 шт)</button>` : ''}
+            </div>`;
+        });
+    }
+}
+
+// ПРОДАЖА И ПОДАРКИ
+window.sellGift = async function(index) {
+    let gifts = toArr(profile.gifts);
+    let item = gifts[index];
+    if(!item) return;
+    let price = GIFTS.find(g => g.name === item.name)?.price || 10;
+    let sellPrice = Math.floor(price / 2);
+    gifts.splice(index, 1);
+    await update(userRef(me.name), { gifts: gifts, balance: profile.balance + sellPrice });
+    toast(`Подарок продан за ${sellPrice} Coin`, true);
+    renderProfile(me.name);
+};
+
+window.sellNft = async function() {
+    if(!currentNftId) return;
+    let nfts = toArr(profile.nfts);
+    let idx = nfts.indexOf(currentNftId);
+    if(idx === -1) return;
+    let baseId = currentNftId.split('_')[0];
+    let base = NFTS.find(n => n.id === baseId) || NFTS[0];
+    let sellPrice = Math.floor(base.price / 2);
+    nfts.splice(idx, 1);
+    let styles = profile.nftStyles || {}; delete styles[currentNftId];
+    await update(userRef(me.name), { nfts: nfts, nftStyles: styles, balance: profile.balance + sellPrice });
+    closeModal('mNftView');
+    toast(`NFT продан за ${sellPrice} Coin`, true);
+    renderProfile(me.name);
+};
+
+window.giftNft = async function() {
+    if(profile.balance < 250) return toast("Нужно 250 Coin для пересылки!");
+    let friend = prompt("Введите ник друга (кому подарить):");
+    if(!friend) return;
+    friend = normName(friend);
+    if(friend === me.name) return toast("Нельзя подарить себе");
+    let friendSnap = await get(userRef(friend));
+    if(!friendSnap.exists()) return toast("Друг не найден");
+    
+    let nfts = toArr(profile.nfts);
+    let idx = nfts.indexOf(currentNftId);
+    if(idx === -1) return;
+    nfts.splice(idx, 1);
+    let styles = profile.nftStyles || {};
+    let styleToGive = styles[currentNftId] || { style: 'nft-style-simple', bg: 'nft-bg-gray' };
+    delete styles[currentNftId];
+    
+    let friendNfts = toArr(friendSnap.val().nfts);
+    friendNfts.push(currentNftId);
+    let friendStyles = friendSnap.val().nftStyles || {};
+    friendStyles[currentNftId] = styleToGive;
+
+    await update(userRef(me.name), { nfts: nfts, nftStyles: styles, balance: profile.balance - 250 });
+    await update(userRef(friend), { nfts: friendNfts, nftStyles: friendStyles });
+    closeModal('mNftView');
+    toast(`NFT подарен ${friend}! Списано 250 Coin`, true);
+    renderProfile(me.name);
+};
+
+// НАСТРОЙКИ
+window.openSettings = () => {
+    $("setBio").value = profile.bio || "";
+    $("setBg").value = profile.profileBg || "bg-blue";
+    $("setBubbleStyle").value = profile.bubbleStyle || "bub-default";
+    $("setMsgColor").value = profile.msgColor || "#2d7aff";
+    renderDevices(profile.devices || {});
+    show("vSettings");
+};
+
+window.saveSettings = async () => {
+    const updates = { 
+        bio: $("setBio").value, 
+        profileBg: $("setBg").value,
+        bubbleStyle: $("setBubbleStyle").value,
+        msgColor: $("setMsgColor").value
+    };
+    await update(userRef(me.name), updates);
+    toast("Настройки сохранены!", true);
+    show("vProfile");
+};
+
+window.createClan = async () => {
+    const name = $("setClan").value.trim();
+    if(!name) return toast("Введите название клана");
+    if(profile.nex < 500) return toast("Нужно 500 NEX!");
+    await update(userRef(me.name), { clan: name, nex: profile.nex - 500 });
+    toast("Клан создан!", true);
+    show("vProfile");
+};
+
+window.startUpgrade = async function(baseId) {
+    let nfts = toArr(profile.nfts);
+    if (nfts.filter(id => id === baseId).length < 4) return toast("Нужно 4 NFT!");
+    openModal("mAnvil");
+    setTimeout(async () => {
+        $("anvilResult").style.opacity = "1";
+        let removed = 0;
+        nfts = nfts.filter(id => { if (id === baseId && removed < 4) { removed++; return false; } return true; });
+        const newId = baseId + '_upg_' + Date.now();
+        nfts.push(newId);
+        await update(userRef(me.name), { nfts });
+        setTimeout(() => { closeModal("mAnvil"); renderProfile(me.name); }, 1000);
+    }, 1500);
+};
+
+window.openNftView = function(nftId, emoji, name, price) {
+    currentNftId = nftId;
+    $("nftViewBox").textContent = emoji;
+    $("nftViewName").textContent = name + (nftId.includes('_upg') ? " (Улучшенный 👑)" : "");
+    openModal("mNftView");
+};
+
+window.buyPremium = async function() {
+    if(profile.nex < 5000) return toast("Нужно 5000 NEX!");
+    await update(userRef(me.name), { nex: profile.nex - 5000, premium: true });
+    toast("Premium активирован! 👑", true);
+    renderProfile(me.name);
+};
+
+// МАГАЗИН
+$("catGift").onclick = () => { shopCat = 'gift'; $("catGift").classList.add('on'); $("catNft").classList.remove('on'); $("catServ").classList.remove('on'); renderShop(); };
+$("catNft").onclick = () => { shopCat = 'nft'; $("catNft").classList.add('on'); $("catGift").classList.remove('on'); $("catServ").classList.remove('on'); renderShop(); };
+$("catServ").onclick = () => { shopCat = 'serv'; $("catServ").classList.add('on'); $("catGift").classList.remove('on'); $("catNft").classList.remove('on'); renderShop(); };
+
+function renderShop() {
+    const grid = $("shopGrid"); grid.innerHTML = "";
+    let arr = shopCat === 'gift' ? GIFTS : (shopCat === 'nft' ? NFTS : SERVICES);
+    arr.forEach(i => {
+        grid.innerHTML += `<div class="item" onclick="buyItem('${i.id}', '${shopCat}')">
+            <div class="ic">${i.emoji}</div><div>${i.name}</div><div class="price">${i.price} ${i.currency === 'nex' ? 'NEX' : '🪙'}</div>
+        </div>`;
+    });
+}
+
+window.buyItem = async function(id, type) {
+    let arr = type === 'gift' ? GIFTS : (type === 'nft' ? NFTS : SERVICES);
+    const item = arr.find(i => i.id === id);
+    const cur = item.currency || 'balance';
+    if(profile[cur] < item.price) return toast("Недостаточно средств!");
+    
+    if(type === 'gift') await update(userRef(me.name), { balance: profile.balance - item.price, gifts: [...toArr(profile.gifts), { name: item.name, emoji: item.emoji }] });
+    else if(type === 'nft') { let n = toArr(profile.nfts); n.push(item.id); await update(userRef(me.name), { balance: profile.balance - item.price, nfts: n }); }
+    else await update(userRef(me.name), { nex: profile.nex - item.price, phone: "+375 (29) 999-99-99" });
+    
+    toast(`Куплено: ${item.name}!`, true);
+};
+
+// АДМИНКА
+window.adminAction = async function(action) {
+    if (me.role !== "ADMIN") return;
+    
+    // Определяем поле ввода в зависимости от действия
+    let fieldId = 'adminUser3';
+    if (['balance', 'nex'].includes(action)) fieldId = 'adminUser1';
+    if (['verify', 'unverify', 'premium', 'unpremium', 'makeadmin', 'removeadmin'].includes(action)) fieldId = 'adminUser2';
+
+    const user = normName($(fieldId).value);
+    if (!user) return toast("Введите ник");
+    const snap = await get(userRef(user));
+    if (!snap.exists()) return toast("Пользователь не найден");
+
+    let updates = {};
+    if (action === 'balance' || action === 'nex') {
+        const amount = Number($("adminAmount1").value);
+        if (!amount) return toast("Введите сумму");
+        updates[action] = (snap.val()[action] || 0) + amount;
+    } else if (action === 'ban') updates.banned = true;
+    else if (action === 'unban') updates.banned = false;
+    else if (action === 'freeze') updates.frozen = true;
+    else if (action === 'unfreeze') updates.frozen = false;
+    else if (action === 'verify') updates.verified = true;
+    else if (action === 'unverify') updates.verified = false;
+    else if (action === 'premium') updates.premium = true;
+    else if (action === 'unpremium') updates.premium = false;
+    else if (action === 'makeadmin') updates.role = "ADMIN";
+    else if (action === 'removeadmin') updates.role = "USER";
+    else if (action === 'clearClan') updates.clan = "";
+    else if (action === 'clearNft') { updates.nfts = []; updates.nftStyles = {}; }
+
+    await update(userRef(user), updates);
+    toast("Действие выполнено!", true);
+};
+
+// НАВИГАЦИЯ
+document.querySelectorAll("#bottomNav button[data-go]").forEach(b => {
+  b.onclick = () => {
+    const v = b.dataset.go;
+    document.querySelectorAll("#bottomNav button").forEach(x => x.classList.toggle('on', x === b));
+    if (v === "vChats") show("vChats");
+    if (v === "vShop") show("vShop");
+    if (v === "vProfile") openProfile(me.name);
+    if (v === "vAdmin") show("vAdmin");
+  };
+});
+
+$("themeBtn").onclick = () => {
+  const light = document.documentElement.dataset.theme === "light";
+  document.documentElement.dataset.theme = light ? "dark" : "light";
+  localStorage.setItem("theme", light ? "dark" : "light");
+};
+if (localStorage.getItem("theme") === "light") document.documentElement.dataset.theme = "light";
+
+</script>
+</body>
+</html>
